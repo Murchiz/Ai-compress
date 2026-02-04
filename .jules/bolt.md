@@ -1,0 +1,3 @@
+## 2025-05-15 - [Inference and Coding Pipeline Optimization]
+**Learning:** In a byte-by-byte compression loop involving both a neural network and arithmetic coding, the overhead of Python loops and redundant tensor creations (like positional embeddings and masks) can account for a significant portion of the total execution time (~30% in this case). Vectorizing the cumulative frequency calculation using `torch.cumsum` and using `register_buffer` for static tensors in the model provide measurable speedups without changing the model architecture.
+**Action:** Always look for Python loops in per-byte processing paths and replace them with vectorized operations. Use `torch.inference_mode()` for a slight performance boost over `torch.no_grad()` during inference.

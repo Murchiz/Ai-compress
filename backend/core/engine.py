@@ -32,7 +32,7 @@ class AICompressionEngine:
             if len(context) > self.predictor.context_size:
                 context.pop(0)
 
-            if i % 100 == 0:
+            if i % 1000 == 0:
                 print(f"Compressed {i}/{orig_size} bytes...", end='\r')
 
         compressed_bits = encoder.finish()
@@ -84,7 +84,7 @@ class AICompressionEngine:
             if len(context) > self.predictor.context_size:
                 context.pop(0)
 
-            if i % 100 == 0:
+            if i % 1000 == 0:
                 print(f"Decompressed {i}/{orig_size} bytes...", end='\r')
 
         with open(output_path, 'wb') as f:
