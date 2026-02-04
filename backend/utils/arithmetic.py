@@ -1,3 +1,4 @@
+import torch
 import sys
 
 class ArithmeticEngine:
@@ -25,12 +26,11 @@ class ArithmeticEngine:
         diff = total_count - counts.sum()
         counts[0] += diff
 
-        # Cumulative frequencies
-        cum_freqs = [0] * 257
-        for i in range(256):
-            cum_freqs[i+1] = cum_freqs[i] + counts[i].item()
+        # Vectorized cumulative frequencies
+        cum_freqs = torch.zeros(257, dtype=torch.long, device=probs.device)
+        torch.cumsum(counts, dim=0, out=cum_freqs[1:])
 
-        return cum_freqs, total_count
+        return cum_freqs.tolist(), total_count
 
 class Encoder:
     def __init__(self, engine):

@@ -19,15 +19,17 @@ class ByteTransformer(nn.Module):
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.fc_out = nn.Linear(embed_dim, vocab_size)
 
+        # Pre-calculate positions and causal mask for performance
+        self.register_buffer("positions", torch.arange(context_size).unsqueeze(0))
+        self.register_buffer("causal_mask", torch.triu(torch.ones(context_size, context_size), diagonal=1).bool())
+
     def forward(self, x):
         # x shape: (batch_size, seq_len)
         b, t = x.size()
-        positions = torch.arange(0, t, device=x.device).unsqueeze(0)
 
-        x = self.token_embedding(x) + self.position_embedding(positions)
-
-        # Causal mask for the transformer
-        mask = torch.triu(torch.ones(t, t, device=x.device), diagonal=1).bool()
+        # Use pre-calculated positions and mask
+        x = self.token_embedding(x) + self.position_embedding(self.positions[:, :t])
+        mask = self.causal_mask[:t, :t]
 
         x = self.transformer(x, mask=mask, is_causal=True)
         logits = self.fc_out(x)
@@ -41,16 +43,18 @@ class Predictor:
         if model_path:
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         self.model.eval()
+        # Cache uniform distribution for empty context
+        self.uniform_dist = (torch.ones(256) / 256.0).to(self.device)
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def predict_next_byte_dist(self, context_bytes):
         """
         Returns a probability distribution over 256 bytes.
         context_bytes: list or tensor of byte values.
         """
         if len(context_bytes) == 0:
-            # Uniform distribution for the first byte
-            return torch.ones(256) / 256.0
+            # Return cached uniform distribution
+            return self.uniform_dist
 
         # Truncate context if too long
         if len(context_bytes) > self.context_size:
@@ -92,6 +96,8 @@ class Predictor:
                 total_loss += loss.item()
 
         self.model.eval()
+        # Cache uniform distribution for empty context
+        self.uniform_dist = (torch.ones(256) / 256.0).to(self.device)
         return total_loss
 
     def save(self, path):
