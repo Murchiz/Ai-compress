@@ -1,0 +1,43 @@
+{
+    "current_brain": "brain_20260202_063604",
+    "brains": {
+        "default": {
+            "created_at": "2026-02-02 06:34:42.535507"
+        },
+        "brain_20260202_063446": {
+            "created_at": "2026-02-02 06:34:46.090327",
+            "parent": "default",
+            "learned_from": "input1.txt"
+        },
+        "brain_20260202_063448": {
+            "created_at": "2026-02-02 06:34:48.282912",
+            "parent": "brain_20260202_063446",
+            "learned_from": "input2.txt"
+        },
+        "brain_20260202_063557": {
+            "created_at": "2026-02-02 06:35:57.398049",
+            "parent": "brain_20260202_063448",
+            "learned_from": "file_0.txt"
+        },
+        "brain_20260202_063559": {
+            "created_at": "2026-02-02 06:35:59.247431",
+            "parent": "brain_20260202_063557",
+            "learned_from": "file_1.txt"
+        },
+        "brain_20260202_063601": {
+            "created_at": "2026-02-02 06:36:01.511834",
+            "parent": "brain_20260202_063559",
+            "learned_from": "file_2.txt"
+        },
+        "brain_20260202_063603": {
+            "created_at": "2026-02-02 06:36:03.220206",
+            "parent": "brain_20260202_063601",
+            "learned_from": "file_3.txt"
+        },
+        "brain_20260202_063604": {
+            "created_at": "2026-02-02 06:36:04.885576",
+            "parent": "brain_20260202_063603",
+            "learned_from": "file_4.txt"
+        }
+    }
+}

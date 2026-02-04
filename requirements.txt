@@ -1,0 +1,8 @@
+torch
+torchvision
+torchaudio
+PyQt6
+numpy
+py7zr
+bitstring
+bitarray
