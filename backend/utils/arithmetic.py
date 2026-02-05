@@ -1,5 +1,6 @@
 import torch
 import sys
+import bisect
 
 class ArithmeticEngine:
     """
@@ -17,14 +18,13 @@ class ArithmeticEngine:
         Converts float probabilities to cumulative integer frequencies.
         Ensures no frequency is 0.
         """
-        # Ensure minimum probability for each symbol
-        probs = probs + 1e-6
-        probs = probs / probs.sum()
+        # Use in-place operations to reduce allocations while maintaining bit-perfect results
+        p = (probs + 1e-6)
+        p /= p.sum()
 
-        counts = (probs * total_count).floor().long()
+        counts = (p * total_count).floor().long()
         # Adjust to sum exactly to total_count
-        diff = total_count - counts.sum()
-        counts[0] += diff
+        counts[0] += (total_count - counts.sum())
 
         # Vectorized cumulative frequencies
         cum_freqs = torch.zeros(257, dtype=torch.long, device=probs.device)
@@ -36,7 +36,11 @@ class Encoder:
     def __init__(self, engine):
         self.engine = engine
         self.low = 0
-        self.high = engine.MAX_RANGE
+        self.MAX_RANGE = engine.MAX_RANGE
+        self.HALF_RANGE = engine.HALF_RANGE
+        self.QUARTER_RANGE = engine.QUARTER_RANGE
+        self.THREE_QUARTER_RANGE = engine.THREE_QUARTER_RANGE
+        self.high = self.MAX_RANGE
         self.pending_bits = 0
         self.output_bits = []
 
@@ -46,21 +50,21 @@ class Encoder:
         self.low = self.low + (range_width * cum_freqs[symbol] // total_count)
 
         while True:
-            if self.high < self.engine.HALF_RANGE:
+            if self.high < self.HALF_RANGE:
                 self._emit_bit(0)
-            elif self.low >= self.engine.HALF_RANGE:
+            elif self.low >= self.HALF_RANGE:
                 self._emit_bit(1)
-                self.low -= self.engine.HALF_RANGE
-                self.high -= self.engine.HALF_RANGE
-            elif self.low >= self.engine.QUARTER_RANGE and self.high < self.engine.THREE_QUARTER_RANGE:
+                self.low -= self.HALF_RANGE
+                self.high -= self.HALF_RANGE
+            elif self.low >= self.QUARTER_RANGE and self.high < self.THREE_QUARTER_RANGE:
                 self.pending_bits += 1
-                self.low -= self.engine.QUARTER_RANGE
-                self.high -= self.engine.QUARTER_RANGE
+                self.low -= self.QUARTER_RANGE
+                self.high -= self.QUARTER_RANGE
             else:
                 break
 
-            self.low = (self.low << 1) & self.engine.MAX_RANGE
-            self.high = ((self.high << 1) | 1) & self.engine.MAX_RANGE
+            self.low = (self.low << 1) & self.MAX_RANGE
+            self.high = ((self.high << 1) | 1) & self.MAX_RANGE
 
     def _emit_bit(self, bit):
         self.output_bits.append(bit)
@@ -70,7 +74,7 @@ class Encoder:
 
     def finish(self):
         self.pending_bits += 1
-        if self.low < self.engine.QUARTER_RANGE:
+        if self.low < self.QUARTER_RANGE:
             self._emit_bit(0)
         else:
             self._emit_bit(1)
@@ -79,10 +83,14 @@ class Encoder:
 class Decoder:
     def __init__(self, engine, bit_stream):
         self.engine = engine
+        self.MAX_RANGE = engine.MAX_RANGE
+        self.HALF_RANGE = engine.HALF_RANGE
+        self.QUARTER_RANGE = engine.QUARTER_RANGE
+        self.THREE_QUARTER_RANGE = engine.THREE_QUARTER_RANGE
         self.bit_stream = bit_stream
         self.bit_idx = 0
         self.low = 0
-        self.high = engine.MAX_RANGE
+        self.high = self.MAX_RANGE
         self.value = 0
 
         # Initialize value with first precision bits
@@ -100,38 +108,29 @@ class Decoder:
         range_width = self.high - self.low + 1
         current_count = ((self.value - self.low + 1) * total_count - 1) // range_width
 
-        # Binary search for symbol
-        symbol = 0
-        low_s = 0
-        high_s = 255
-        while low_s <= high_s:
-            mid = (low_s + high_s) // 2
-            if cum_freqs[mid + 1] <= current_count:
-                low_s = mid + 1
-                symbol = mid + 1
-            else:
-                high_s = mid - 1
+        # Binary search for symbol using bisect for performance
+        symbol = bisect.bisect_right(cum_freqs, current_count) - 1
 
         # Update range
         self.high = self.low + (range_width * cum_freqs[symbol + 1] // total_count) - 1
         self.low = self.low + (range_width * cum_freqs[symbol] // total_count)
 
         while True:
-            if self.high < self.engine.HALF_RANGE:
+            if self.high < self.HALF_RANGE:
                 pass
-            elif self.low >= self.engine.HALF_RANGE:
-                self.low -= self.engine.HALF_RANGE
-                self.high -= self.engine.HALF_RANGE
-                self.value -= self.engine.HALF_RANGE
-            elif self.low >= self.engine.QUARTER_RANGE and self.high < self.engine.THREE_QUARTER_RANGE:
-                self.low -= self.engine.QUARTER_RANGE
-                self.high -= self.engine.QUARTER_RANGE
-                self.value -= self.engine.QUARTER_RANGE
+            elif self.low >= self.HALF_RANGE:
+                self.low -= self.HALF_RANGE
+                self.high -= self.HALF_RANGE
+                self.value -= self.HALF_RANGE
+            elif self.low >= self.QUARTER_RANGE and self.high < self.THREE_QUARTER_RANGE:
+                self.low -= self.QUARTER_RANGE
+                self.high -= self.QUARTER_RANGE
+                self.value -= self.QUARTER_RANGE
             else:
                 break
 
-            self.low = (self.low << 1) & self.engine.MAX_RANGE
-            self.high = ((self.high << 1) | 1) & self.engine.MAX_RANGE
-            self.value = ((self.value << 1) | self._next_bit()) & self.engine.MAX_RANGE
+            self.low = (self.low << 1) & self.MAX_RANGE
+            self.high = ((self.high << 1) | 1) & self.MAX_RANGE
+            self.value = ((self.value << 1) | self._next_bit()) & self.MAX_RANGE
 
         return symbol
