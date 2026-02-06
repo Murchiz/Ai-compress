@@ -5,3 +5,7 @@
 ## 2025-05-16 - [Arithmetic Coder Loop and Search Optimization]
 **Learning:** In the per-symbol loop of arithmetic coding, attribute lookups (e.g., `self.engine.MAX_RANGE`) and manual binary search in Python are significant bottlenecks. Caching these attributes as local instance variables and using the native `bisect` module for searching cumulative frequency lists can reduce the engine's overhead by over 70%.
 **Action:** Cache frequently accessed engine constants in the coder's constructor. Use `bisect.bisect_right` for symbol lookup in cumulative frequency lists.
+
+## 2025-05-17 - [Transformer Positional Embedding Optimization]
+**Learning:** During per-byte inference, looking up positional embeddings via `nn.Embedding` in every forward pass is redundant. Slicing from a pre-calculated buffer (`register_buffer`) is significantly faster on CPU.
+**Action:** Pre-calculate and cache positional embeddings in the model's constructor and update the cache only after training.
