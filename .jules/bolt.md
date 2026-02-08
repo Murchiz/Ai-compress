@@ -9,3 +9,6 @@
 ## 2025-05-17 - [Transformer Positional Embedding Optimization]
 **Learning:** During per-byte inference, looking up positional embeddings via `nn.Embedding` in every forward pass is redundant. Slicing from a pre-calculated buffer (`register_buffer`) is significantly faster on CPU.
 **Action:** Pre-calculate and cache positional embeddings in the model's constructor and update the cache only after training.
+## 2026-02-07 - [Device Transfer Bottleneck]
+**Learning:** When optimizing tensor creation from lists (e.g., using `torch.as_tensor`), always perform slicing/truncation on the host (CPU) before the transfer to the device. Moving the slice after tensor creation (`x = torch.as_tensor(list, device=device); x = x[:128]`) forces the entire list to be copied to the device, which is a major performance bottleneck for large inputs.
+**Action:** Truncate input lists to the required size before calling tensor conversion functions that involve a device transfer.
