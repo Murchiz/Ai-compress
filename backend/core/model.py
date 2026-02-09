@@ -51,7 +51,7 @@ class ByteTransformer(nn.Module):
             ).bool()
         )
 
-    def forward(self, x):
+    def forward(self, x, last_token_only=False):
         # x shape: (batch_size, seq_len)
         b, t = x.size()
 
@@ -65,6 +65,12 @@ class ByteTransformer(nn.Module):
         mask = self.causal_mask[:t, :t]
 
         x = self.transformer(x, mask=mask, is_causal=True)
+
+        if last_token_only:
+            # Optimization: Slice the hidden state to the last token before the final linear layer
+            # This eliminates redundant O(seq_len) linear projections during inference.
+            x = x[:, -1:, :]
+
         logits = self.fc_out(x)
         return logits
 
@@ -110,8 +116,9 @@ class Predictor:
             dtype=torch.long,
             device=self.device
         ).unsqueeze(0)
-        logits = self.model(x)
-        last_logits = logits[0, -1, :]
+        logits = self.model(x, last_token_only=True)
+        # logits shape is (1, 1, 256) because of last_token_only=True
+        last_logits = logits[0, 0, :]
         probs = F.softmax(last_logits, dim=-1)
         return probs
 

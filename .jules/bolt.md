@@ -12,3 +12,7 @@
 ## 2026-02-07 - [Device Transfer Bottleneck]
 **Learning:** When optimizing tensor creation from lists (e.g., using `torch.as_tensor`), always perform slicing/truncation on the host (CPU) before the transfer to the device. Moving the slice after tensor creation (`x = torch.as_tensor(list, device=device); x = x[:128]`) forces the entire list to be copied to the device, which is a major performance bottleneck for large inputs.
 **Action:** Truncate input lists to the required size before calling tensor conversion functions that involve a device transfer.
+
+## 2026-02-08 - [Redundant Linear Projection during Inference]
+**Learning:** In autoregressive models like transformers, the final linear layer (projection to vocabulary) is often applied to the entire sequence. During token-by-token inference, we only need the prediction for the last token. Slicing the hidden state to `x[:, -1:, :]` before `fc_out` reduces the complexity of this layer from $O(seq\_len)$ to $O(1)$.
+**Action:** Implement a `last_token_only` flag in the model's `forward` pass to skip redundant computations during inference.
