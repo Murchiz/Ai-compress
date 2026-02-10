@@ -16,3 +16,7 @@
 ## 2026-02-08 - [Redundant Linear Projection during Inference]
 **Learning:** In autoregressive models like transformers, the final linear layer (projection to vocabulary) is often applied to the entire sequence. During token-by-token inference, we only need the prediction for the last token. Slicing the hidden state to `x[:, -1:, :]` before `fc_out` reduces the complexity of this layer from $O(seq\_len)$ to $O(1)$.
 **Action:** Implement a `last_token_only` flag in the model's `forward` pass to skip redundant computations during inference.
+
+## 2026-02-09 - [Cumulative Frequency List Construction Optimization]
+**Learning:** Constructing a list of cumulative frequencies using `[0] + tensor.cumsum(0).tolist()` is significantly faster than pre-allocating a zero tensor and using in-place slice assignment (`cum_freqs[1:] = ...`). This is due to reduced overhead in Python-C++ boundary crossings and memory allocations.
+**Action:** Use the `[0] + ...tolist()` pattern when converting small tensors to padded cumulative lists.

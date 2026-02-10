@@ -18,6 +18,9 @@ class ArithmeticEngine:
         Converts float probabilities to cumulative integer frequencies.
         Ensures no frequency is 0.
         """
+        # Move to CPU early to avoid multiple GPU-CPU synchronizations for small tensors
+        probs = probs.to('cpu')
+
         # Use in-place operations to reduce allocations while maintaining bit-perfect results
         p = (probs + 1e-6)
         p /= p.sum()
@@ -26,11 +29,10 @@ class ArithmeticEngine:
         # Adjust to sum exactly to total_count
         counts[0] += (total_count - counts.sum())
 
-        # Vectorized cumulative frequencies
-        cum_freqs = torch.zeros(257, dtype=torch.long, device=probs.device)
-        torch.cumsum(counts, dim=0, out=cum_freqs[1:])
-
-        return cum_freqs.tolist(), total_count
+        # Performance Optimization: Constructing a list of cumulative frequencies
+        # using [0] + counts.cumsum(0).tolist() is significantly faster than
+        # pre-allocating a zero tensor and using in-place slice assignment.
+        return [0] + counts.cumsum(0).tolist(), total_count
 
 class Encoder:
     def __init__(self, engine):
