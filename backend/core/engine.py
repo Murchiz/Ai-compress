@@ -1,6 +1,7 @@
 import os
 import torch
 import bitstring
+import numpy as np
 from backend.core.model import Predictor
 from backend.utils.arithmetic import ArithmeticEngine, Encoder, Decoder
 
@@ -15,11 +16,15 @@ class AICompressionEngine:
 
         orig_size = len(data)
         encoder = Encoder(self.engine)
-        context = []
+
+        # Performance Optimization: Use numpy array for context to speed up tensor conversion
+        # and avoid O(N) list.pop(0) operations.
+        context = np.zeros(self.predictor.context_size, dtype=np.int64)
+        context_len = 0
 
         for i, byte in enumerate(data):
             # 1. Get prediction from AI
-            probs = self.predictor.predict_next_byte_dist(context)
+            probs = self.predictor.predict_next_byte_dist(context[:context_len])
 
             # 2. Get cumulative frequencies for AC
             cum_freqs, total_count = self.engine.get_cum_freqs(probs)
@@ -28,9 +33,13 @@ class AICompressionEngine:
             encoder.encode(byte, cum_freqs, total_count)
 
             # 4. Update context
-            context.append(byte)
-            if len(context) > self.predictor.context_size:
-                context.pop(0)
+            if context_len < self.predictor.context_size:
+                context[context_len] = byte
+                context_len += 1
+            else:
+                # Efficient shift and update
+                context[:-1] = context[1:]
+                context[-1] = byte
 
             if i % 1000 == 0:
                 print(f"Compressed {i}/{orig_size} bytes...", end='\r')
@@ -70,19 +79,27 @@ class AICompressionEngine:
             data_bits = bitstring.BitArray(f.read())
 
         decoder = Decoder(self.engine, data_bits)
-        context = []
+
+        # Performance Optimization: Use numpy array for context to speed up tensor conversion
+        context = np.zeros(self.predictor.context_size, dtype=np.int64)
+        context_len = 0
         decoded_data = bytearray()
 
         for i in range(orig_size):
-            probs = self.predictor.predict_next_byte_dist(context)
+            probs = self.predictor.predict_next_byte_dist(context[:context_len])
             cum_freqs, total_count = self.engine.get_cum_freqs(probs)
 
             byte = decoder.decode(cum_freqs, total_count)
             decoded_data.append(byte)
 
-            context.append(byte)
-            if len(context) > self.predictor.context_size:
-                context.pop(0)
+            # Update context
+            if context_len < self.predictor.context_size:
+                context[context_len] = byte
+                context_len += 1
+            else:
+                # Efficient shift and update
+                context[:-1] = context[1:]
+                context[-1] = byte
 
             if i % 1000 == 0:
                 print(f"Decompressed {i}/{orig_size} bytes...", end='\r')

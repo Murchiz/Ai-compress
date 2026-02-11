@@ -21,13 +21,15 @@ class ArithmeticEngine:
         # Move to CPU early to avoid multiple GPU-CPU synchronizations for small tensors
         probs = probs.to('cpu')
 
-        # Use in-place operations to reduce allocations while maintaining bit-perfect results
-        p = (probs + 1e-6)
-        p /= p.sum()
+        # Performance Optimization: Use item() for scalar extraction and in-place ops
+        # to reduce tensor overhead in the high-frequency engine loop.
+        p = probs + 1e-6
+        # Avoid creating a tensor for the sum when dividing
+        p.mul_(total_count / p.sum().item())
 
-        counts = (p * total_count).floor().long()
-        # Adjust to sum exactly to total_count
-        counts[0] += (total_count - counts.sum())
+        counts = p.floor().long()
+        # Adjust to sum exactly to total_count using item() for the sum
+        counts[0] += (total_count - counts.sum().item())
 
         # Performance Optimization: Constructing a list of cumulative frequencies
         # using [0] + counts.cumsum(0).tolist() is significantly faster than

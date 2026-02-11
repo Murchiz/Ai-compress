@@ -20,3 +20,7 @@
 ## 2026-02-09 - [Cumulative Frequency List Construction Optimization]
 **Learning:** Constructing a list of cumulative frequencies using `[0] + tensor.cumsum(0).tolist()` is significantly faster than pre-allocating a zero tensor and using in-place slice assignment (`cum_freqs[1:] = ...`). This is due to reduced overhead in Python-C++ boundary crossings and memory allocations.
 **Action:** Use the `[0] + ...tolist()` pattern when converting small tensors to padded cumulative lists.
+
+## 2026-02-11 - [Context Management and Scalar Extraction Optimization]
+**Learning:** In high-frequency per-byte loops, Python list manipulations and PyTorch tensor-scalar operations have non-negligible overhead. Replacing context lists with fixed-size NumPy arrays makes `torch.as_tensor` ~7x faster. Additionally, using `.item()` to extract scalars before math operations avoids the PyTorch dispatcher overhead for 0-D tensors.
+**Action:** Use NumPy arrays for sliding window contexts that are frequently converted to tensors. Always use `.item()` for scalar math in tight loops.
