@@ -1,6 +1,5 @@
 import os
-import torch
-import bitstring
+import bitarray
 import numpy as np
 from backend.core.model import Predictor
 from backend.utils.arithmetic import ArithmeticEngine, Encoder, Decoder
@@ -56,8 +55,7 @@ class AICompressionEngine:
             f.write(model_id_bytes)
 
             # Write bits
-            b = bitstring.BitArray(compressed_bits)
-            f.write(b.tobytes())
+            f.write(compressed_bits.tobytes())
 
         print(f"\nCompression complete: {orig_size} -> {os.path.getsize(output_path)} bytes")
 
@@ -76,7 +74,8 @@ class AICompressionEngine:
             if os.path.exists(model_file):
                 self.predictor.load(model_file)
 
-            data_bits = bitstring.BitArray(f.read())
+            data_bits = bitarray.bitarray()
+            data_bits.frombytes(f.read())
 
         decoder = Decoder(self.engine, data_bits)
 
@@ -107,4 +106,4 @@ class AICompressionEngine:
         with open(output_path, 'wb') as f:
             f.write(decoded_data)
 
-        print(f"\nDecompression complete.")
+        print("\nDecompression complete.")

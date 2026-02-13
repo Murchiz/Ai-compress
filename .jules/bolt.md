@@ -24,3 +24,7 @@
 ## 2026-02-11 - [Context Management and Scalar Extraction Optimization]
 **Learning:** In high-frequency per-byte loops, Python list manipulations and PyTorch tensor-scalar operations have non-negligible overhead. Replacing context lists with fixed-size NumPy arrays makes `torch.as_tensor` ~7x faster. Additionally, using `.item()` to extract scalars before math operations avoids the PyTorch dispatcher overhead for 0-D tensors.
 **Action:** Use NumPy arrays for sliding window contexts that are frequently converted to tensors. Always use `.item()` for scalar math in tight loops.
+
+## 2026-02-12 - [Bit Manipulation Library Optimization]
+**Learning:** Performance Insight: `bitarray` is significantly faster (~20x) than `bitstring` for both bit-level indexing and converting accumulated bits to bytes. In `bitarray` (v3.8.0), `.tobytes()` automatically zero-pads bitstreams, which is safe for this architecture since the decoder relies on the original file size header rather than the bitstream length.
+**Action:** Use `bitarray` instead of `bitstring` for high-frequency bit manipulations and final serialization in compression pipelines.
