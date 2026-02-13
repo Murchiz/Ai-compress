@@ -1,6 +1,9 @@
-import torch
 import time
+
+import torch
+
 from backend.utils.arithmetic import ArithmeticEngine
+
 
 def benchmark_get_cum_freqs():
     engine = ArithmeticEngine()
@@ -11,6 +14,7 @@ def benchmark_get_cum_freqs():
         engine.get_cum_freqs(probs)
     end = time.time()
     print(f"Original get_cum_freqs time for 1000 calls: {end - start:.4f}s")
+
 
 class OptimizedArithmeticEngine(ArithmeticEngine):
     def get_cum_freqs(self, probs, total_count=1000000):
@@ -24,6 +28,7 @@ class OptimizedArithmeticEngine(ArithmeticEngine):
         cum_freqs[1:] = torch.cumsum(counts, dim=0)
         return cum_freqs.tolist(), total_count
 
+
 def benchmark_optimized_get_cum_freqs():
     engine = OptimizedArithmeticEngine()
     probs = torch.randn(256).softmax(dim=0)
@@ -33,6 +38,7 @@ def benchmark_optimized_get_cum_freqs():
         engine.get_cum_freqs(probs)
     end = time.time()
     print(f"Optimized get_cum_freqs time for 1000 calls: {end - start:.4f}s")
+
 
 if __name__ == "__main__":
     benchmark_get_cum_freqs()

@@ -1,0 +1,8 @@
+pytest
+pytest-cov
+black
+isort
+ruff
+mypy
+twine
+build

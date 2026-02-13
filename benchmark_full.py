@@ -1,9 +1,11 @@
-import torch
+import sys
 import time
+
 from backend.core.model import Predictor
 from backend.utils.arithmetic import ArithmeticEngine
 
-def benchmark():
+
+def benchmark(n=1000):
     predictor = Predictor()
     engine = ArithmeticEngine()
     context = list(range(128))
@@ -12,7 +14,7 @@ def benchmark():
     probs = predictor.predict_next_byte_dist(context)
     engine.get_cum_freqs(probs)
 
-    n = 1000 # Increased for better measurement
+    print(f"Running benchmark with n={n}...")
 
     start = time.time()
     for _ in range(n):
@@ -34,5 +36,9 @@ def benchmark():
     end_engine = time.time()
     print(f"Engine-only time for {n} calls: {end_engine - start_engine:.4f}s")
 
+
 if __name__ == "__main__":
-    benchmark()
+    n_val = 1000
+    if len(sys.argv) > 1:
+        n_val = int(sys.argv[1])
+    benchmark(n_val)
