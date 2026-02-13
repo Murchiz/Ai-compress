@@ -28,3 +28,7 @@
 ## 2026-02-12 - [Bit Manipulation Library Optimization]
 **Learning:** Performance Insight: `bitarray` is significantly faster (~20x) than `bitstring` for both bit-level indexing and converting accumulated bits to bytes. In `bitarray` (v3.8.0), `.tobytes()` automatically zero-pads bitstreams, which is safe for this architecture since the decoder relies on the original file size header rather than the bitstream length.
 **Action:** Use `bitarray` instead of `bitstring` for high-frequency bit manipulations and final serialization in compression pipelines.
+
+## 2026-02-13 - [Tensor Casting and Adjustment Optimization]
+**Learning:** In high-frequency loops, converting float tensors to longs using `p.long()` is ~2x faster than `p.floor().long()`. This is mathematically safe for positive values like scaled probabilities. Additionally, adding conditional checks (`if diff:`) to skip redundant tensor additions can provide micro-optimizations in tight Python loops.
+**Action:** Use direct casting to `.long()` for positive tensors when floor behavior is needed. Avoid redundant in-place operations with simple conditional checks.
