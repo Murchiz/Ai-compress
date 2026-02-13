@@ -1,8 +1,11 @@
-import os
-import json
-import py7zr
 import datetime
+import json
+import os
+
+import py7zr
+
 from backend.core.engine import AICompressionEngine
+
 
 class BrainManager:
     def __init__(self, base_dir="."):
@@ -26,12 +29,15 @@ class BrainManager:
 
     def _load_history(self):
         if os.path.exists(self.history_file):
-            with open(self.history_file, 'r') as f:
+            with open(self.history_file, "r") as f:
                 return json.load(f)
-        return {"current_brain": "default", "brains": {"default": {"created_at": str(datetime.datetime.now())}}}
+        return {
+            "current_brain": "default",
+            "brains": {"default": {"created_at": str(datetime.datetime.now())}},
+        }
 
     def _save_history(self):
-        with open(self.history_file, 'w') as f:
+        with open(self.history_file, "w") as f:
             json.dump(self.history, f, indent=4)
 
     def get_current_brain_id(self):
@@ -50,7 +56,7 @@ class BrainManager:
         self._add_to_training_set(input_path)
 
         # 3. Learn (Automatic)
-        with open(input_path, 'rb') as f:
+        with open(input_path, "rb") as f:
             data = f.read()
 
         print(f"Learning from {input_path}...")
@@ -65,7 +71,7 @@ class BrainManager:
         self.history["brains"][new_brain_id] = {
             "created_at": str(datetime.datetime.now()),
             "parent": brain_id,
-            "learned_from": os.path.basename(input_path)
+            "learned_from": os.path.basename(input_path),
         }
         self.history["current_brain"] = new_brain_id
         self._save_history()
@@ -74,9 +80,11 @@ class BrainManager:
 
     def _add_to_training_set(self, file_path):
         archive_path = os.path.join(self.data_dir, "training_set.7z")
-        mode = 'a' if os.path.exists(archive_path) else 'w'
+        mode = "a" if os.path.exists(archive_path) else "w"
         with py7zr.SevenZipFile(archive_path, mode) as archive:
             archive.write(file_path, os.path.basename(file_path))
 
     def decompress(self, input_path, output_path):
-        self.engine.decompress(input_path, output_path, model_library_path=self.models_dir)
+        self.engine.decompress(
+            input_path, output_path, model_library_path=self.models_dir
+        )

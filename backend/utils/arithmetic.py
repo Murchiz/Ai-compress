@@ -1,15 +1,18 @@
 import bisect
+
 import bitarray
+
 
 class ArithmeticEngine:
     """
     A simple Arithmetic Coding implementation using integer ranges.
     """
+
     def __init__(self, precision=32):
         self.precision = precision
         self.MAX_RANGE = (1 << precision) - 1
-        self.HALF_RANGE = (1 << (precision - 1))
-        self.QUARTER_RANGE = (1 << (precision - 2))
+        self.HALF_RANGE = 1 << (precision - 1)
+        self.QUARTER_RANGE = 1 << (precision - 2)
         self.THREE_QUARTER_RANGE = self.HALF_RANGE + self.QUARTER_RANGE
 
     def get_cum_freqs(self, probs, total_count=1000000):
@@ -18,7 +21,7 @@ class ArithmeticEngine:
         Ensures no frequency is 0.
         """
         # Move to CPU early to avoid multiple GPU-CPU synchronizations for small tensors
-        probs = probs.to('cpu')
+        probs = probs.to("cpu")
 
         # Performance Optimization: Use item() for scalar extraction and in-place ops
         # to reduce tensor overhead in the high-frequency engine loop.
@@ -39,6 +42,7 @@ class ArithmeticEngine:
         # using [0] + counts.cumsum(0).tolist() is significantly faster than
         # pre-allocating a zero tensor and using in-place slice assignment.
         return [0] + counts.cumsum(0).tolist(), total_count
+
 
 class Encoder:
     def __init__(self, engine):
@@ -64,7 +68,9 @@ class Encoder:
                 self._emit_bit(1)
                 self.low -= self.HALF_RANGE
                 self.high -= self.HALF_RANGE
-            elif self.low >= self.QUARTER_RANGE and self.high < self.THREE_QUARTER_RANGE:
+            elif (
+                self.low >= self.QUARTER_RANGE and self.high < self.THREE_QUARTER_RANGE
+            ):
                 self.pending_bits += 1
                 self.low -= self.QUARTER_RANGE
                 self.high -= self.QUARTER_RANGE
@@ -87,6 +93,7 @@ class Encoder:
         else:
             self._emit_bit(1)
         return self.output_bits
+
 
 class Decoder:
     def __init__(self, engine, bit_stream):
@@ -130,7 +137,9 @@ class Decoder:
                 self.low -= self.HALF_RANGE
                 self.high -= self.HALF_RANGE
                 self.value -= self.HALF_RANGE
-            elif self.low >= self.QUARTER_RANGE and self.high < self.THREE_QUARTER_RANGE:
+            elif (
+                self.low >= self.QUARTER_RANGE and self.high < self.THREE_QUARTER_RANGE
+            ):
                 self.low -= self.QUARTER_RANGE
                 self.high -= self.QUARTER_RANGE
                 self.value -= self.QUARTER_RANGE

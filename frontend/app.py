@@ -1,10 +1,23 @@
 import sys
-import os
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                             QHBoxLayout, QPushButton, QLabel, QFileDialog,
-                             QProgressBar, QTextEdit, QListWidget, QMessageBox)
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+
+from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from backend.core.manager import BrainManager
+
 
 class WorkerThread(QThread):
     progress = pyqtSignal(str)
@@ -30,6 +43,7 @@ class WorkerThread(QThread):
         except Exception as e:
             self.error.emit(str(e))
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -46,7 +60,9 @@ class MainWindow(QMainWindow):
 
         # Brain Status
         status_layout = QHBoxLayout()
-        self.brain_label = QLabel(f"Current Brain: {self.manager.get_current_brain_id()}")
+        self.brain_label = QLabel(
+            f"Current Brain: {self.manager.get_current_brain_id()}"
+        )
         status_layout.addWidget(self.brain_label)
         layout.addLayout(status_layout)
 
@@ -100,14 +116,16 @@ class MainWindow(QMainWindow):
 
         # For simplicity, we compress the first file in the list
         input_path = items[0]
-        output_path, _ = QFileDialog.getSaveFileName(self, "Save Compressed File", "", "AICP Files (*.aicp)")
+        output_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Compressed File", "", "AICP Files (*.aicp)"
+        )
 
         if not output_path:
             return
 
         self.set_ui_enabled(False)
         self.log(f"Starting compression of {input_path}...")
-        self.progress_bar.setRange(0, 0) # Indeterminate
+        self.progress_bar.setRange(0, 0)  # Indeterminate
 
         self.thread = WorkerThread("compress", input_path, output_path, self.manager)
         self.thread.finished.connect(self.on_compress_finished)
@@ -119,7 +137,9 @@ class MainWindow(QMainWindow):
         # Allow selecting from dialog even if list is empty
         input_path = items[0] if items else ""
         if not input_path or not input_path.endswith(".aicp"):
-             input_path, _ = QFileDialog.getOpenFileName(self, "Select AICP File", "", "AICP Files (*.aicp)")
+            input_path, _ = QFileDialog.getOpenFileName(
+                self, "Select AICP File", "", "AICP Files (*.aicp)"
+            )
 
         if not input_path:
             return
@@ -143,7 +163,9 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(100)
         self.log(f"Compression finished! New Brain ID: {new_brain_id}")
         self.brain_label.setText(f"Current Brain: {new_brain_id}")
-        QMessageBox.information(self, "Success", f"File compressed. Model updated to {new_brain_id}")
+        QMessageBox.information(
+            self, "Success", f"File compressed. Model updated to {new_brain_id}"
+        )
 
     def on_decompress_finished(self, message):
         self.set_ui_enabled(True)
@@ -163,6 +185,7 @@ class MainWindow(QMainWindow):
         self.compress_btn.setEnabled(enabled)
         self.decompress_btn.setEnabled(enabled)
         self.file_list.setEnabled(enabled)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

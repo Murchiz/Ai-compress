@@ -1,0 +1,60 @@
+[tool.black]
+line-length = 88
+target-version = ['py312', 'py313']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "B"]
+ignore = [
+    "N812", # Lowercase functional imported as non-lowercase F (Standard PyTorch)
+    "N802", # Function name should be lowercase (PyQt patterns)
+]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-compressor"
+version = "0.1.0"
+description = "AI-Powered Continuous Learning Compressor"
+requires-python = ">=3.12"
+dependencies = [
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "PyQt6",
+    "numpy",
+    "py7zr",
+    "bitstring",
+    "bitarray",
+]
+
+[tool.setuptools]
+packages = ["backend", "backend.core", "backend.utils", "frontend"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+    "isort",
+    "ruff",
+    "mypy",
+    "twine",
+    "build",
+]

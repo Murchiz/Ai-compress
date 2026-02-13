@@ -5,12 +5,7 @@ import torch.nn.functional as F
 
 class ByteTransformer(nn.Module):
     def __init__(
-        self,
-        vocab_size=256,
-        embed_dim=128,
-        num_layers=2,
-        num_heads=4,
-        context_size=128
+        self, vocab_size=256, embed_dim=128, num_layers=2, num_heads=4, context_size=128
     ):
         super().__init__()
         self.context_size = context_size
@@ -20,35 +15,23 @@ class ByteTransformer(nn.Module):
         # Pre-calculate positional embeddings to avoid lookup overhead
         with torch.no_grad():
             pos_indices = torch.arange(context_size).unsqueeze(0)
-            self.register_buffer(
-                "pos_emb_cache",
-                self.position_embedding(pos_indices)
-            )
+            self.register_buffer("pos_emb_cache", self.position_embedding(pos_indices))
 
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=embed_dim,
             nhead=num_heads,
             dim_feedforward=embed_dim * 4,
             batch_first=True,
-            norm_first=True
+            norm_first=True,
         )
-        self.transformer = nn.TransformerEncoder(
-            encoder_layer,
-            num_layers=num_layers
-        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.fc_out = nn.Linear(embed_dim, vocab_size)
 
         # Pre-calculate positions and causal mask for performance
-        self.register_buffer(
-            "positions",
-            torch.arange(context_size).unsqueeze(0)
-        )
+        self.register_buffer("positions", torch.arange(context_size).unsqueeze(0))
         self.register_buffer(
             "causal_mask",
-            torch.triu(
-                torch.ones(context_size, context_size),
-                diagonal=1
-            ).bool()
+            torch.triu(torch.ones(context_size, context_size), diagonal=1).bool(),
         )
 
     def forward(self, x, last_token_only=False):
@@ -67,7 +50,7 @@ class ByteTransformer(nn.Module):
         x = self.transformer(x, mask=mask, is_causal=True)
 
         if last_token_only:
-            # Optimization: Slice the hidden state to the last token before the final linear layer
+            # Optimization: Slice hidden state to last token before final linear layer
             # This eliminates redundant O(seq_len) linear projections during inference.
             x = x[:, -1:, :]
 
@@ -81,16 +64,12 @@ class ByteTransformer(nn.Module):
 
 
 class Predictor:
-    def __init__(self, model_path=None, device='cpu'):
+    def __init__(self, model_path=None, device="cpu"):
         self.device = torch.device(device)
         self.context_size = 128
-        self.model = ByteTransformer(
-            context_size=self.context_size
-        ).to(self.device)
+        self.model = ByteTransformer(context_size=self.context_size).to(self.device)
         if model_path:
-            self.model.load_state_dict(
-                torch.load(model_path, map_location=self.device)
-            )
+            self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         self.model.eval()
         self.model.update_pos_emb_cache()
         # Cache uniform distribution for empty context
@@ -106,15 +85,13 @@ class Predictor:
             # Return cached uniform distribution
             return self.uniform_dist
 
-        # Truncate context if too long (done on CPU to avoid unnecessary device transfer)
+        # Truncate context if too long (done on CPU to avoid unnecessary transfer)
         if len(context_bytes) > self.context_size:
-            context_bytes = context_bytes[-self.context_size:]
+            context_bytes = context_bytes[-self.context_size :]
 
         # Use torch.as_tensor for ~35% faster tensor creation from lists
         x = torch.as_tensor(
-            context_bytes,
-            dtype=torch.long,
-            device=self.device
+            context_bytes, dtype=torch.long, device=self.device
         ).unsqueeze(0)
         logits = self.model(x, last_token_only=True)
         # logits shape is (1, 1, 256) because of last_token_only=True
@@ -130,13 +107,11 @@ class Predictor:
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
 
         data_tensor = torch.tensor(
-            list(data_bytes),
-            dtype=torch.long,
-            device=self.device
+            list(data_bytes), dtype=torch.long, device=self.device
         )
 
         total_loss = 0
-        for epoch in range(epochs):
+        for _ in range(epochs):
             # Simple chunking
             for i in range(0, len(data_tensor) - 1, self.context_size):
                 end_idx = min(i + self.context_size + 1, len(data_tensor))
