@@ -1,6 +1,5 @@
-import torch
-import sys
 import bisect
+import bitarray
 
 class ArithmeticEngine:
     """
@@ -46,7 +45,7 @@ class Encoder:
         self.THREE_QUARTER_RANGE = engine.THREE_QUARTER_RANGE
         self.high = self.MAX_RANGE
         self.pending_bits = 0
-        self.output_bits = []
+        self.output_bits = bitarray.bitarray()
 
     def encode(self, symbol, cum_freqs, total_count):
         range_width = self.high - self.low + 1
