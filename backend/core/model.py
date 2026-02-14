@@ -50,9 +50,10 @@ class ByteTransformer(nn.Module):
         x = self.transformer(x, mask=mask, is_causal=True)
 
         if last_token_only:
-            # Optimization: Slice hidden state to last token before final linear layer
-            # This eliminates redundant O(seq_len) linear projections during inference.
-            x = x[:, -1:, :]
+            # Optimization: Slice hidden state to last token before final linear layer.
+            # Bolt: Squeezing to (batch, dim) is faster than (batch, 1, dim)
+            # for linear layers.
+            x = x[:, -1, :]
 
         logits = self.fc_out(x)
         return logits
@@ -94,8 +95,9 @@ class Predictor:
             context_bytes, dtype=torch.long, device=self.device
         ).unsqueeze(0)
         logits = self.model(x, last_token_only=True)
-        # logits shape is (1, 1, 256) because of last_token_only=True
-        last_logits = logits[0, 0, :]
+        # logits shape is (1, 256) because of last_token_only=True
+        # and squeeze optimization
+        last_logits = logits[0, :]
         probs = F.softmax(last_logits, dim=-1)
         return probs
 
