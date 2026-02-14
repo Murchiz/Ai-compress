@@ -32,3 +32,7 @@
 ## 2026-02-13 - [Tensor Casting and Adjustment Optimization]
 **Learning:** In high-frequency loops, converting float tensors to longs using `p.long()` is ~2x faster than `p.floor().long()`. This is mathematically safe for positive values like scaled probabilities. Additionally, adding conditional checks (`if diff:`) to skip redundant tensor additions can provide micro-optimizations in tight Python loops.
 **Action:** Use direct casting to `.long()` for positive tensors when floor behavior is needed. Avoid redundant in-place operations with simple conditional checks.
+
+## 2026-02-14 - [Linear Layer Input Rank Optimization]
+**Learning:** Passing 2D tensors `(batch, dim)` to PyTorch linear layers (`nn.Linear`) is measurably faster than passing 3D tensors `(batch, 1, dim)` during single-token inference. This reduces dispatch overhead and allows for more efficient GEMM kernels.
+**Action:** Squeeze singleton dimensions (like the sequence dimension during autoregressive inference) before passing hidden states to the final linear projection layer.

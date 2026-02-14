@@ -14,7 +14,7 @@ def test_byte_transformer_shapes():
 
     # Test last_token_only
     logits_last = model(x, last_token_only=True)
-    assert logits_last.shape == (1, 1, 256)
+    assert logits_last.shape == (1, 256)
 
 
 def test_predictor_prediction():
