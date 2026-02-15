@@ -36,3 +36,7 @@
 ## 2026-02-14 - [Linear Layer Input Rank Optimization]
 **Learning:** Passing 2D tensors `(batch, dim)` to PyTorch linear layers (`nn.Linear`) is measurably faster than passing 3D tensors `(batch, 1, dim)` during single-token inference. This reduces dispatch overhead and allows for more efficient GEMM kernels.
 **Action:** Squeeze singleton dimensions (like the sequence dimension during autoregressive inference) before passing hidden states to the final linear projection layer.
+
+## 2026-02-15 - [Inference Tensor and is_causal Bottlenecks]
+**Learning:** Tensors returned from functions decorated with @torch.inference_mode() are inference tensors and do not allow in-place updates (RuntimeError). Additionally, while is_causal=True is a powerful hint for SDPA, it requires an explicit mask in some PyTorch versions/configurations when using nn.TransformerEncoder, and passing both can sometimes be slower than passing just the mask.
+**Action:** Avoid in-place operations on tensors returned from inference-decorated methods. Prefer moving tensors to CPU before the final softmax to reduce GPU workload when the result is destined for a CPU-bound process like arithmetic coding.
