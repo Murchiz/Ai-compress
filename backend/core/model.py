@@ -90,14 +90,17 @@ class Predictor:
         if len(context_bytes) > self.context_size:
             context_bytes = context_bytes[-self.context_size :]
 
-        # Use torch.as_tensor for ~35% faster tensor creation from lists
+        # Use torch.as_tensor for ~35% faster tensor creation.
+        # Bolt: view(1, -1) is clean and fast for creating the batch dimension.
         x = torch.as_tensor(
             context_bytes, dtype=torch.long, device=self.device
-        ).unsqueeze(0)
+        ).view(1, -1)
         logits = self.model(x, last_token_only=True)
         # logits shape is (1, 256) because of last_token_only=True
-        # and squeeze optimization
-        last_logits = logits[0, :]
+        # and squeeze optimization.
+        # Bolt: Move to CPU before softmax to reduce GPU overhead and
+        # prepare for the arithmetic engine.
+        last_logits = logits[0].to("cpu")
         probs = F.softmax(last_logits, dim=-1)
         return probs
 
