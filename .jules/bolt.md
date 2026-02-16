@@ -38,5 +38,9 @@
 **Action:** Squeeze singleton dimensions (like the sequence dimension during autoregressive inference) before passing hidden states to the final linear projection layer.
 
 ## 2026-02-15 - [Inference Tensor and is_causal Bottlenecks]
-**Learning:** Tensors returned from functions decorated with @torch.inference_mode() are inference tensors and do not allow in-place updates (RuntimeError). Additionally, while is_causal=True is a powerful hint for SDPA, it requires an explicit mask in some PyTorch versions/configurations when using nn.TransformerEncoder, and passing both can sometimes be slower than passing just the mask.
+**Learning:** Tensors returned from functions decorated with @torch.inference_mode() are inference tensors and do not allow in-place updates (RuntimeError). Additionally, while is_causal=True is a powerful hint for SDPA, it requires an explicit mask in some PyTorch versions/configurations when using nn.TransformerEncoder.
 **Action:** Avoid in-place operations on tensors returned from inference-decorated methods. Prefer moving tensors to CPU before the final softmax to reduce GPU workload when the result is destined for a CPU-bound process like arithmetic coding.
+
+## 2026-02-16 - [NumPy vs PyTorch for Small Symbol Sets]
+**Learning:** For small-scale mathematical operations (e.g., probability-to-frequency conversion for 256 symbols), NumPy is significantly faster (>2x) than PyTorch. This is because PyTorch's dispatcher and kernel launch overhead are relatively high compared to the actual compute for small arrays on the CPU.
+**Action:** Use NumPy for post-processing model outputs (like probability distribution adjustments) before they enter CPU-bound logic like arithmetic coding.
