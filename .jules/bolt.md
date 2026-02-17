@@ -44,3 +44,7 @@
 ## 2026-02-16 - [NumPy vs PyTorch for Small Symbol Sets]
 **Learning:** For small-scale mathematical operations (e.g., probability-to-frequency conversion for 256 symbols), NumPy is significantly faster (>2x) than PyTorch. This is because PyTorch's dispatcher and kernel launch overhead are relatively high compared to the actual compute for small arrays on the CPU.
 **Action:** Use NumPy for post-processing model outputs (like probability distribution adjustments) before they enter CPU-bound logic like arithmetic coding.
+
+## 2026-02-17 - [Host-Side Truncation and Tensor Creation Overhead]
+**Learning:** Moving truncation logic to after a device transfer is a major performance regression as it forces unnecessary data to be moved across the bus. Truncating on the host (CPU) first is critical. Additionally, while `torch.as_tensor` is versatile, `torch.from_numpy().to(device)` is approximately 40% faster for high-frequency conversion of existing NumPy arrays.
+**Action:** Always truncate input data on the CPU before converting to tensors. Use `torch.from_numpy().to(device)` for maximum efficiency when the input is a compatible NumPy array.
