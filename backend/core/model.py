@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -86,15 +87,21 @@ class Predictor:
             # Return cached uniform distribution
             return self.uniform_dist
 
-        # Truncate context if too long (done on CPU to avoid unnecessary transfer)
+        # Performance Optimization: torch.from_numpy followed by .to(device) is
+        # measurably faster than torch.as_tensor for NumPy arrays.
+        # Bolt: We handle both lists (for tests/API) and NumPy arrays (for engine).
+        # Optimization: Truncate on host (CPU) before device transfer to save bandwidth.
         if len(context_bytes) > self.context_size:
             context_bytes = context_bytes[-self.context_size :]
 
-        # Use torch.as_tensor for ~35% faster tensor creation.
-        # Bolt: view(1, -1) is clean and fast for creating the batch dimension.
-        x = torch.as_tensor(
-            context_bytes, dtype=torch.long, device=self.device
-        ).view(1, -1)
+        if isinstance(context_bytes, np.ndarray):
+            # Performance Optimization: torch.from_numpy followed by .to(device) is
+            # measurably faster than torch.as_tensor for NumPy arrays.
+            x = torch.from_numpy(context_bytes).to(self.device)
+        else:
+            x = torch.as_tensor(context_bytes, dtype=torch.long, device=self.device)
+
+        x = x.view(1, -1)
         logits = self.model(x, last_token_only=True)
         # logits shape is (1, 256) because of last_token_only=True
         # and squeeze optimization.
