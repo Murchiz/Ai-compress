@@ -48,3 +48,7 @@
 ## 2026-02-17 - [Host-Side Truncation and Tensor Creation Overhead]
 **Learning:** Moving truncation logic to after a device transfer is a major performance regression as it forces unnecessary data to be moved across the bus. Truncating on the host (CPU) first is critical. Additionally, while `torch.as_tensor` is versatile, `torch.from_numpy().to(device)` is approximately 40% faster for high-frequency conversion of existing NumPy arrays.
 **Action:** Always truncate input data on the CPU before converting to tensors. Use `torch.from_numpy().to(device)` for maximum efficiency when the input is a compatible NumPy array.
+
+## 2026-02-18 - [Redundant Pass and Global Adjustment Optimization]
+**Learning:** In cumulative frequency calculations, performing a separate `.sum()` pass is redundant when an `np.cumsum()` is already required. Using the last element of the cumulative sum array to calculate the alignment difference (`diff`) and then applying that difference globally (`cum_counts += diff`) is mathematically equivalent to adjusting the first element before the sum. This avoids one O(N) pass and one Python-C boundary crossing.
+**Action:** Always check if a required cumulative operation can provide the total sum for alignment checks to eliminate redundant array passes.

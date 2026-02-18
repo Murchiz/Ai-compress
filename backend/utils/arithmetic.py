@@ -27,23 +27,26 @@ class ArithmeticEngine:
         # Bolt: input probs are guaranteed to be on CPU by Predictor.
         p = probs.numpy()
 
-        # Performance Optimization: Avoid p.sum() and floating point division.
+        # Performance Optimization: Consolidate scaling and addition.
         # By scaling and adding 1, we ensure all counts are at least 1 and
         # the sum is close to total_count.
-        # Measured: This approach is ~8% faster than the original scaling.
         # Bolt: len(p) is used instead of hardcoded 256 for architectural flexibility.
         num_symbols = len(p)
-        counts = (p * (total_count - num_symbols)).astype(np.int64)
-        counts += 1
+        counts = (p * (total_count - num_symbols)).astype(np.int64) + 1
 
-        # Adjust to sum exactly to total_count
-        diff = total_count - counts.sum()
+        # Performance Optimization: Use the last element of the cumulative sum
+        # to find the total sum and calculate 'diff', avoiding an extra .sum() call.
+        # Bolt: cum_counts is then adjusted globally by adding 'diff', which is
+        # mathematically equivalent to adding 'diff' to counts[0] before the cumsum.
+        # This maintains bit-perfection while reducing overhead.
+        cum_counts = np.cumsum(counts)
+        diff = total_count - cum_counts[-1]
         if diff:
-            counts[0] += diff
+            cum_counts += diff
 
         # Performance Optimization: [0] + ...tolist() is the fastest pattern for
         # creating the padded cumulative list for bisect-based decoding.
-        return [0] + np.cumsum(counts).tolist(), total_count
+        return [0] + cum_counts.tolist(), total_count
 
 
 class Encoder:
