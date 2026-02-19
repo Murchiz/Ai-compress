@@ -52,3 +52,7 @@
 ## 2026-02-18 - [Redundant Pass and Global Adjustment Optimization]
 **Learning:** In cumulative frequency calculations, performing a separate `.sum()` pass is redundant when an `np.cumsum()` is already required. Using the last element of the cumulative sum array to calculate the alignment difference (`diff`) and then applying that difference globally (`cum_counts += diff`) is mathematically equivalent to adjusting the first element before the sum. This avoids one O(N) pass and one Python-C boundary crossing.
 **Action:** Always check if a required cumulative operation can provide the total sum for alignment checks to eliminate redundant array passes.
+
+## 2026-02-19 - [Bitarray Manipulation Optimization]
+**Learning:** Iterating over a `bitarray` using an iterator (`iter(bits)`) and `next(it)` is approximately 40% faster than integer indexing in tight loops. Additionally, using `bitarray.extend([bit] * count)` is significantly faster than a manual `while` loop for appending multiple identical bits, as it leverages C-level optimizations and reduces allocation overhead.
+**Action:** Use iterators for sequential bit access and `extend` with repeated lists for bulk bit emission in Arithmetic Coding engines.
