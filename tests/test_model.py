@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from backend.core.model import ByteTransformer, Predictor
@@ -15,9 +16,6 @@ def test_byte_transformer_shapes():
     # Test last_token_only
     logits_last = model(x, last_token_only=True)
     assert logits_last.shape == (1, 256)
-
-
-import numpy as np
 
 
 def test_predictor_prediction():

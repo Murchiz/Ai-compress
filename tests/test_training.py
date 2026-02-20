@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 
 from backend.core.model import Predictor
 
@@ -15,6 +15,4 @@ def test_training_sanity():
     new_probs = predictor.predict_next_byte_dist(list(b"Some "))
 
     # Probs should have changed
-    import numpy as np
-
     assert not np.allclose(initial_probs, new_probs)
