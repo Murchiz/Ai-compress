@@ -15,4 +15,6 @@ def test_training_sanity():
     new_probs = predictor.predict_next_byte_dist(list(b"Some "))
 
     # Probs should have changed
-    assert not torch.allclose(initial_probs, new_probs)
+    import numpy as np
+
+    assert not np.allclose(initial_probs, new_probs)

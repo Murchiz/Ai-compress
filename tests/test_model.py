@@ -17,13 +17,16 @@ def test_byte_transformer_shapes():
     assert logits_last.shape == (1, 256)
 
 
+import numpy as np
+
+
 def test_predictor_prediction():
     predictor = Predictor()
     context = [10, 20, 30]
     probs = predictor.predict_next_byte_dist(context)
 
     assert probs.shape == (256,)
-    assert torch.isclose(probs.sum(), torch.tensor(1.0), atol=1e-5)
+    assert np.isclose(probs.sum(), 1.0, atol=1e-5)
 
 
 def test_predictor_empty_context():
@@ -32,4 +35,4 @@ def test_predictor_empty_context():
 
     assert probs.shape == (256,)
     # Should be uniform
-    assert torch.allclose(probs, torch.ones(256) / 256.0)
+    assert np.allclose(probs, np.ones(256) / 256.0)

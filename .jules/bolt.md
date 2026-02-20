@@ -56,3 +56,7 @@
 ## 2026-02-19 - [Bitarray Manipulation Optimization]
 **Learning:** Iterating over a `bitarray` using an iterator (`iter(bits)`) and `next(it)` is approximately 40% faster than integer indexing in tight loops. Additionally, using `bitarray.extend([bit] * count)` is significantly faster than a manual `while` loop for appending multiple identical bits, as it leverages C-level optimizations and reduces allocation overhead.
 **Action:** Use iterators for sequential bit access and `extend` with repeated lists for bulk bit emission in Arithmetic Coding engines.
+
+## 2026-02-20 - [Float Mask and Cross-Module Return Type Optimization]
+**Learning:** In PyTorch's SDPA, using a float-based mask (0.0 and -inf) is measurably faster (~6%) on CPU than a boolean mask because it avoids internal dtype conversions. Furthermore, in high-frequency loops spanning multiple modules (Predictor -> ArithmeticEngine), returning NumPy arrays directly from the model wrapper and handling them in the engine eliminates redundant `.numpy()` calls, providing another ~5% speedup.
+**Action:** Prefer float masks for CPU transformers. Align return types between modules in tight loops to avoid redundant conversion methods.

@@ -15,6 +15,8 @@ class ArithmeticEngine:
         self.HALF_RANGE = 1 << (precision - 1)
         self.QUARTER_RANGE = 1 << (precision - 2)
         self.THREE_QUARTER_RANGE = self.HALF_RANGE + self.QUARTER_RANGE
+        # Bolt: Caching scale factors for common symbol sets (256 bytes)
+        self.default_scale = 1000000 - 256
 
     def get_cum_freqs(self, probs, total_count=1000000):
         """
@@ -25,14 +27,23 @@ class ArithmeticEngine:
         # Measured: NumPy is >2x faster than PyTorch for 256-element operations
         # due to significantly lower dispatch overhead in tight loops.
         # Bolt: input probs are guaranteed to be on CPU by Predictor.
-        p = probs.numpy()
+        # Performance Optimization: Handle both tensors and NumPy arrays to avoid
+        # redundant conversion calls.
+        if isinstance(probs, np.ndarray):
+            p = probs
+        else:
+            p = probs.numpy()
 
         # Performance Optimization: Consolidate scaling and addition.
         # By scaling and adding 1, we ensure all counts are at least 1 and
         # the sum is close to total_count.
         # Bolt: len(p) is used instead of hardcoded 256 for architectural flexibility.
         num_symbols = len(p)
-        counts = (p * (total_count - num_symbols)).astype(np.int64) + 1
+        if total_count == 1000000 and num_symbols == 256:
+            scale = self.default_scale
+        else:
+            scale = total_count - num_symbols
+        counts = (p * scale).astype(np.int64) + 1
 
         # Performance Optimization: Use the last element of the cumulative sum
         # to find the total sum and calculate 'diff', avoiding an extra .sum() call.
