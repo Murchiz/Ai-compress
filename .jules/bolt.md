@@ -60,3 +60,7 @@
 ## 2026-02-20 - [Float Mask and Cross-Module Return Type Optimization]
 **Learning:** In PyTorch's SDPA, using a float-based mask (0.0 and -inf) is measurably faster (~6%) on CPU than a boolean mask because it avoids internal dtype conversions. Furthermore, in high-frequency loops spanning multiple modules (Predictor -> ArithmeticEngine), returning NumPy arrays directly from the model wrapper and handling them in the engine eliminates redundant `.numpy()` calls, providing another ~5% speedup.
 **Action:** Prefer float masks for CPU transformers. Align return types between modules in tight loops to avoid redundant conversion methods.
+
+## 2026-02-21 - [Vectorized Byte-to-Tensor Conversion]
+**Learning:** Converting raw bytes to a PyTorch tensor using `torch.tensor(list(data_bytes))` is a massive bottleneck because it iterates through the buffer in Python and creates a list of Python integer objects. Using `np.frombuffer` with `torch.from_numpy` allows for vectorized conversion that is orders of magnitude faster.
+**Action:** Never use `list(bytes_obj)` for tensor creation. Always use `np.frombuffer` followed by `astype` and `torch.from_numpy`.
