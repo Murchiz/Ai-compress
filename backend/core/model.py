@@ -127,9 +127,11 @@ class Predictor:
         self.model.train()
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
 
-        data_tensor = torch.tensor(
-            list(data_bytes), dtype=torch.long, device=self.device
-        )
+        # Performance Optimization: torch.from_numpy followed by .to(device) is
+        # significantly faster than torch.tensor(list(data_bytes)).
+        # Bolt: np.frombuffer avoids a copy of the raw byte data.
+        data_np = np.frombuffer(data_bytes, dtype=np.uint8).astype(np.int64)
+        data_tensor = torch.from_numpy(data_np).to(self.device)
 
         total_loss = 0
         for _ in range(epochs):
